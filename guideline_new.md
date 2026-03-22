@@ -12,7 +12,10 @@
 ## 3. Quy trình thực hiện
 1. **Kết nối board với CCS/XDS110, mở Scripting Console.**
 2. **Đặt core về trạng thái "no boot" (nếu cần truy cập thanh ghi trực tiếp).**
-3. **Xác định địa chỉ base/offset của GPIO cần thao tác (theo TRM hoặc file soc.h).**
+3. **Xác định địa chỉ base/offset của GPIO cần thao tác:**
+   - Nếu dùng SDK đầy đủ: tra cứu file `pdk_j784s4_11_02_00_15/packages/ti/drv/gpio/soc/gpio_j784s4.h` hoặc `gpio_soc.h` để lấy mapping địa chỉ GPIO cho J784S4.
+   - Nếu chỉ có docs_only: tra cứu địa chỉ thanh ghi GPIO trong Technical Reference Manual (TRM) J784S4, chương GPIO.
+   - Best practice: luôn ưu tiên file `gpio_j784s4.h` hoặc `gpio_soc.h` trong driver GPIO của PDK đúng SoC để đảm bảo mapping chuẩn.
 4. **Dùng lệnh script để đọc/ghi thanh ghi, ví dụ:**
    ```js
    // Đọc giá trị thanh ghi
