@@ -2,7 +2,6 @@
 
 ## Scope Clarification
 
-You referenced ./u-boot/tests/ut.c, but in this repository the core file is:
 - [u-boot/test/ut.c](u-boot/test/ut.c)
 
 This document explains the C unit-test framework around that module, including architecture, execution flow, system interaction, how to add new tests, and how to automate test execution.
@@ -161,6 +160,66 @@ Relevant file:
 - UNIT_TEST macro emits linker-list entries.
 - cmd_ut.c maps command suites to linker-list ranges.
 - test/Makefile controls whether suite objects are linked.
+
+## 4.5 Existing UT suites and representative test cases
+
+At this source snapshot, the normal `ut` command declares 26 top-level suites in [u-boot/test/cmd_ut.c](u-boot/test/cmd_ut.c). Actual runtime availability is still config-dependent, since a suite can exist in the dispatcher while its linker-list range is empty in a particular build.
+
+The table below is intentionally representative, not exhaustive. It shows real test cases that already exist in the tree and are useful as reference points when adding or debugging UT coverage.
+
+| Suite | Main focus | Representative existing test cases | Key source files |
+|---|---|---|---|
+| addrmap | addrmap command behavior | `addrmap_test_basic` | [u-boot/test/cmd/addrmap.c](u-boot/test/cmd/addrmap.c) |
+| bdinfo | board-info output validation | `bdinfo_test_full`, `bdinfo_test_help`, `bdinfo_test_memory` | [u-boot/test/cmd/bdinfo.c](u-boot/test/cmd/bdinfo.c) |
+| bloblist | bloblist core logic and CLI | `bloblist_test_init`, `bloblist_test_checksum`, `bloblist_test_cmd_list` | [u-boot/test/common/bloblist.c](u-boot/test/common/bloblist.c) |
+| bootm | `bootm` parameter substitution and silent behavior | `bootm_test_nop`, `bootm_test_silent`, `bootm_test_subst_both` | [u-boot/test/boot/bootm.c](u-boot/test/boot/bootm.c) |
+| bootstd | standard boot, bootflow, bootdev, bootmeth, expo, cedit, VBE | `bootflow_cmd`, `bootdev_test_cmd_list`, `bootmeth_cmd_list`, `expo_base`, `cedit_base`, `vbe_simple_test_base` | [u-boot/test/boot/bootflow.c](u-boot/test/boot/bootflow.c), [u-boot/test/boot/bootdev.c](u-boot/test/boot/bootdev.c), [u-boot/test/boot/bootmeth.c](u-boot/test/boot/bootmeth.c), [u-boot/test/boot/expo.c](u-boot/test/boot/expo.c), [u-boot/test/boot/cedit.c](u-boot/test/boot/cedit.c), [u-boot/test/boot/vbe_simple.c](u-boot/test/boot/vbe_simple.c) |
+| cmd | generic command behavior outside dedicated suites | `command_test`, `cmd_test_qfw_list`, `cmd_test_cpuid`, `net_test_wget` | [u-boot/test/cmd/command.c](u-boot/test/cmd/command.c), [u-boot/test/cmd/qfw.c](u-boot/test/cmd/qfw.c), [u-boot/test/cmd/cpuid.c](u-boot/test/cmd/cpuid.c), [u-boot/test/cmd/wget.c](u-boot/test/cmd/wget.c) |
+| common | common/ helpers, CLI input, printing, events, autoboot | `test_event_base`, `cread_test`, `print_printf`, `test_autoboot` | [u-boot/test/common/event.c](u-boot/test/common/event.c), [u-boot/test/common/cread.c](u-boot/test/common/cread.c), [u-boot/test/common/print.c](u-boot/test/common/print.c), [u-boot/test/common/test_autoboot.c](u-boot/test/common/test_autoboot.c) |
+| dm | Driver Model subsystems and command integration | `dm_test_rtc_set_get`, `dm_test_mmc_base`, `dm_test_iommu`, `dm_test_dma`, `dm_test_virtio_rng_check_len` | [u-boot/test/dm/rtc.c](u-boot/test/dm/rtc.c), [u-boot/test/dm/mmc.c](u-boot/test/dm/mmc.c), [u-boot/test/dm/iommu.c](u-boot/test/dm/iommu.c), [u-boot/test/dm/dma.c](u-boot/test/dm/dma.c), [u-boot/test/dm/virtio_rng.c](u-boot/test/dm/virtio_rng.c) |
+| env | environment storage, attributes, hash table, FDT import | `env_test_env_cmd`, `env_test_attrs_lookup`, `env_test_htab_fill`, `env_test_fdt_import` | [u-boot/test/env/cmd_ut_env.c](u-boot/test/env/cmd_ut_env.c), [u-boot/test/env/attr.c](u-boot/test/env/attr.c), [u-boot/test/env/hashtable.c](u-boot/test/env/hashtable.c), [u-boot/test/env/fdt.c](u-boot/test/env/fdt.c) |
+| exit | shell exit semantics and return-code propagation | `cmd_exit_test` | [u-boot/test/cmd/exit.c](u-boot/test/cmd/exit.c) |
+| fdt | `fdt` command behavior across addressing, mutation, query, apply | `fdt_test_addr`, `fdt_test_get_value`, `fdt_test_set`, `fdt_test_apply` | [u-boot/test/cmd/fdt.c](u-boot/test/cmd/fdt.c) |
+| fdt_overlay | overlay merge and phandle handling | `fdt_overlay_test_change_int_property`, `fdt_overlay_test_add_node_by_path`, `fdt_overlay_test_stacked` | [u-boot/test/fdt_overlay/cmd_ut_fdt_overlay.c](u-boot/test/fdt_overlay/cmd_ut_fdt_overlay.c) |
+| font | font command and rendering path | `font_test_base` | [u-boot/test/cmd/font.c](u-boot/test/cmd/font.c) |
+| hw | hardware validation through a thin HAL boundary | `hw_test_smoke` | [u-boot/test/hw/suites/hw_smoke.c](u-boot/test/hw/suites/hw_smoke.c), [u-boot/include/test/hw.h](u-boot/include/test/hw.h) |
+| hush | shell language semantics | `hush_test_if_base`, `hush_test_simple_dollar`, `hush_test_for`, `hush_test_and_or` | [u-boot/test/hush/if.c](u-boot/test/hush/if.c), [u-boot/test/hush/dollar.c](u-boot/test/hush/dollar.c), [u-boot/test/hush/loop.c](u-boot/test/hush/loop.c), [u-boot/test/hush/list.c](u-boot/test/hush/list.c) |
+| lib | low-level library code, crypto, Unicode, string/memory, compression | `lib_test_lmb_simple`, `lib_rsa_verify_valid`, `unicode_test_utf8_get`, `compression_test_gzip`, `lib_test_sha256_hmac` | [u-boot/test/lib/lmb.c](u-boot/test/lib/lmb.c), [u-boot/test/lib/rsa.c](u-boot/test/lib/rsa.c), [u-boot/test/lib/unicode.c](u-boot/test/lib/unicode.c), [u-boot/test/lib/compression.c](u-boot/test/lib/compression.c), [u-boot/test/lib/test_sha256_hmac.c](u-boot/test/lib/test_sha256_hmac.c) |
+| loadm | `loadm` argument parsing and memory-blob loading | `loadm_test_params`, `loadm_test_load` | [u-boot/test/cmd/loadm.c](u-boot/test/cmd/loadm.c) |
+| log | log formatting, disabled logging, syslog, continuation semantics | `log_test_cont`, `log_test_nolog_err`, `log_test_syslog_err`, `log_test_pr_cont` | [u-boot/test/log/cont_test.c](u-boot/test/log/cont_test.c), [u-boot/test/log/nolog_test.c](u-boot/test/log/nolog_test.c), [u-boot/test/log/syslog_test.c](u-boot/test/log/syslog_test.c), [u-boot/test/log/pr_cont_test.c](u-boot/test/log/pr_cont_test.c) |
+| mbr | `mbr` command execution path | `mbr_test_run` | [u-boot/test/cmd/mbr.c](u-boot/test/cmd/mbr.c) |
+| measurement | TPM-based measured boot | `measure` | [u-boot/test/boot/measurement.c](u-boot/test/boot/measurement.c) |
+| mem | memory copy/search commands | `mem_test_cp_b`, `mem_test_cp_q`, `mem_test_ms_b`, `mem_test_ms_quiet` | [u-boot/test/cmd/mem_copy.c](u-boot/test/cmd/mem_copy.c), [u-boot/test/cmd/mem_search.c](u-boot/test/cmd/mem_search.c) |
+| optee | OP-TEE device-tree fix-up helpers | `optee_fdt_copy_empty`, `optee_fdt_copy_prefilled`, `optee_fdt_copy_already_filled` | [u-boot/test/optee/optee.c](u-boot/test/optee/optee.c) |
+| pci_mps | PCIe Maximum Payload Size safety | `test_pci_mps_safe` | [u-boot/test/cmd/pci_mps.c](u-boot/test/cmd/pci_mps.c) |
+| seama | SEAMA image command decode path | `seama_test_noargs`, `seama_test_addr`, `seama_test_index` | [u-boot/test/cmd/seama.c](u-boot/test/cmd/seama.c) |
+| setexpr | integer, regex, string, and format-expression behavior | `setexpr_test_int`, `setexpr_test_regex`, `setexpr_test_str_oper`, `setexpr_test_fmt` | [u-boot/test/cmd/setexpr.c](u-boot/test/cmd/setexpr.c) |
+| upl | Universal Payload data model and serialization | `upl_test_base`, `upl_test_info`, `upl_test_read_write`, `upl_test_info_norun` | [u-boot/test/boot/upl.c](u-boot/test/boot/upl.c) |
+
+Concrete commands against existing tests:
+
+```bash
+./u-boot -T -c "ut bootm bootm_test_subst_both"
+./u-boot -T -c "ut dm dm_test_rtc_set_get"
+./u-boot -T -c "ut fdt fdt_test_apply"
+./u-boot -T -c "ut hw hw_test_smoke"
+./u-boot -T -c "ut hush hush_test_for"
+```
+
+## 4.6 Existing SPL/XPL-only UT cases
+
+Not all UT coverage is exposed through the normal `ut` top-level command. When building SPL/XPL with the corresponding config options, [u-boot/test/image/](u-boot/test/image/) contributes a separate family of image-loading tests.
+
+Representative existing SPL-oriented test families include:
+
+| Family | Coverage | Representative registrations | Source files |
+|---|---|---|---|
+| core image parsing | SPL image-header parse/load behavior | `spl_test_image` over `LEGACY`, `IMX8`, `FIT_INTERNAL`, `FIT_EXTERNAL` | [u-boot/test/image/spl_load.c](u-boot/test/image/spl_load.c) |
+| filesystem loaders | ext/fat and block-backed image load | `spl_test_ext`, `spl_test_fat`, `spl_test_blk`, `spl_test_mmc` | [u-boot/test/image/spl_load_fs.c](u-boot/test/image/spl_load_fs.c) |
+| flash/network media | NOR, NAND, SPI, network load paths | `spl_test_nor`, `spl_test_nand`, `spl_test_spi`, `spl_test_net` | [u-boot/test/image/spl_load_nor.c](u-boot/test/image/spl_load_nor.c), [u-boot/test/image/spl_load_nand.c](u-boot/test/image/spl_load_nand.c), [u-boot/test/image/spl_load_spi.c](u-boot/test/image/spl_load_spi.c), [u-boot/test/image/spl_load_net.c](u-boot/test/image/spl_load_net.c) |
+| OS handoff | SPL OS-loading path | `spl_test_load` | [u-boot/test/image/spl_load_os.c](u-boot/test/image/spl_load_os.c) |
+
+These tests are important because they validate the same linker-list + assertion model in a different build phase, where command availability and init sequencing differ from the normal sandbox `ut` flow.
 
 ---
 
