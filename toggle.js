@@ -4,6 +4,9 @@
  *
  * This script includes PINMUX config and toggles the pins as output.
  */
+//~ti_sdk_pdk_rtos/source/ti-processor-sdk-rtos-j784s4-evm-11_02_00_06/pdk_j784s4_11_02_00_15/packages/ti/csl/soc/j784s4
+//#include "J784S4_pinmux.h" J784S4_pinmux_data.c
+//https://www.ti.com/lit/ug/spruj52e/spruj52e.zip?ts=1774353856198&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FTDA4VPE-Q1%253FkeyMatch%253DTDA4VPE-Q1%2526tisearch%253Duniversal_search
 
 // ====== USER CONFIGURATION ======
 // Set this to 1, if using 'FreeRTOS'
